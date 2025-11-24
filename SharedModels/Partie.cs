@@ -13,6 +13,9 @@ public class Partie
     public Donjon? Donjon { get; set; }
 
     public int ScoreFinal { get; set; }
+    public int ScoreCourant { get; set; }
+    public int IndexSalleCourante { get; set; }
+    public bool EstTerminee { get; set; }
     public DateTime DateDebut { get; set; } = DateTime.Now;
     public DateTime? DateFin { get; set; }
 

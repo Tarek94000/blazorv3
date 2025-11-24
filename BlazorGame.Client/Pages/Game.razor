@@ -1,0 +1,110 @@
+@page "/game/{partieId:int}"
+@using SharedModels
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components
+@inject HttpClient Http
+
+<PageTitle>Aventure</PageTitle>
+
+<div class="game-canvas">
+  <h1>Aventure en cours</h1>
+
+  @if (State is null)
+  {
+    <p>Chargement de la partie...</p>
+  }
+  else if (State.Partie is null)
+  {
+    <p class="error">Partie introuvable.</p>
+  }
+  else if (State.Partie.EstTerminee)
+  {
+    <div class="result">
+      <h2>Partie terminée</h2>
+      <p>Score final : <strong>@State.Partie.ScoreFinal</strong></p>
+      <p>Etat : @State.Partie.EtatPartie</p>
+    </div>
+  }
+  else
+  {
+    <div class="room-wrap">
+      <h3>Salle @((State.Partie.IndexSalleCourante + 1)) / @State.Partie.Donjon?.Salles.Count</h3>
+      <p><strong>Type :</strong> @State.SalleCourante?.Type</p>
+      <p><strong>Description :</strong> @State.SalleCourante?.Description</p>
+      <p><strong>Difficulté :</strong> @State.SalleCourante?.Difficulte</p>
+
+      <div class="score">Score courant : @State.Partie.ScoreCourant</div>
+
+      <div class="actions">
+        <button class="item primary" disabled="@IsProcessing" @onclick="ChoisirCombattre">⚔️ Combattre</button>
+        <button class="item" disabled="@IsProcessing" @onclick="ChoisirFuir">🏃‍♂️ Fuir</button>
+        <button class="item" disabled="@IsProcessing" @onclick="ChoisirFouiller">🧭 Fouiller</button>
+      </div>
+    </div>
+  }
+
+  @if (!string.IsNullOrEmpty(Message))
+  {
+    <p>@Message</p>
+  }
+</div>
+
+@code {
+  private GameStateDto? State { get; set; }
+  private bool IsProcessing { get; set; }
+  private string? Message { get; set; }
+
+  [Parameter]
+  public int PartieId { get; set; }
+
+  protected override async Task OnInitializedAsync()
+  {
+    await ChargerPartie();
+  }
+
+  private async Task ChargerPartie()
+  {
+    Message = null;
+    try
+    {
+      State = await Http.GetFromJsonAsync<GameStateDto>($"api/game/{PartieId}");
+    }
+    catch (Exception ex)
+    {
+      Message = ex.Message;
+    }
+  }
+
+  private async Task EnvoyerChoix(string choix)
+  {
+    IsProcessing = true;
+    Message = null;
+
+    try
+    {
+      var response = await Http.PostAsJsonAsync($"api/game/{PartieId}/choice", new { choix });
+      if (!response.IsSuccessStatusCode)
+      {
+        Message = "Le serveur a refusé le choix.";
+      }
+    }
+    catch (Exception ex)
+    {
+      Message = ex.Message;
+    }
+    finally
+    {
+      await ChargerPartie();
+      IsProcessing = false;
+    }
+  }
+  private Task ChoisirCombattre() => EnvoyerChoix("Combattre");
+  private Task ChoisirFuir() => EnvoyerChoix("Fuir");
+  private Task ChoisirFouiller() => EnvoyerChoix("Fouiller");
+
+  private class GameStateDto
+  {
+    public Partie? Partie { get; set; }
+    public Salle? SalleCourante { get; set; }
+  }
+}

@@ -1,4 +1,5 @@
 using GameService.Data;
+using GameService.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -6,6 +7,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Base InMemory (simple pour la V2)
 builder.Services.AddDbContext<GameDbContext>(options =>
     options.UseInMemoryDatabase("GameQuestDb"));
+
+builder.Services.AddScoped<GameLogicService>();
 
 // Swagger + MVC
 builder.Services.AddControllers();
