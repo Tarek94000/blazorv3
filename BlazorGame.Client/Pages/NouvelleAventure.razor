@@ -1,0 +1,60 @@
+@page "/nouvelle-aventure"
+@using SharedModels
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<PageTitle>Nouvelle aventure</PageTitle>
+
+<div class="start-canvas">
+  <h1>Démarrer une aventure</h1>
+  <p class="subtitle">Lancez une partie et plongez dans un donjon généré aléatoirement.</p>
+
+  <div class="form-group">
+    <label for="joueur">Identifiant du joueur</label>
+    <input id="joueur" type="number" min="1" @bind="JoueurId" />
+  </div>
+
+  <button class="bigcard primary" disabled="@IsLoading" @onclick="Demarrer">🎲 Start adventure</button>
+
+  @if (!string.IsNullOrEmpty(Message))
+  {
+    <p>@Message</p>
+  }
+</div>
+
+@code {
+  private int JoueurId { get; set; } = 1;
+  private bool IsLoading { get; set; }
+  private string? Message { get; set; }
+
+  private async Task Demarrer()
+  {
+    IsLoading = true;
+    Message = null;
+
+    try
+    {
+      var response = await Http.PostAsync($"api/game/start?joueurId={JoueurId}", null);
+      if (response.IsSuccessStatusCode)
+      {
+        var partie = await response.Content.ReadFromJsonAsync<Partie>();
+        if (partie is not null)
+        {
+          Nav.NavigateTo($"/game/{partie.Id}");
+          return;
+        }
+      }
+
+      Message = "Impossible de démarrer l'aventure.";
+    }
+    catch (Exception ex)
+    {
+      Message = $"Erreur : {ex.Message}";
+    }
+    finally
+    {
+      IsLoading = false;
+    }
+  }
+}
